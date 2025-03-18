@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Finder - Scan Active Servers</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: #f4f4f4;
+        }
+        h1 { color: #333; }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background: #0056b3; }
+        ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+        li {
+            background: white;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌍 Advanced Server Finder</h1>
+    <p>Enter IP range to scan for active HTTP/HTTPS servers</p>
+
+    <input type="text" id="startIP" placeholder="Start IP (e.g., 198.20.20.1)">
+    <input type="text" id="endIP" placeholder="End IP (e.g., 198.20.20.50)">
+    <button onclick="scanServers()">Start Scan</button>
+
+    <ul id="serverList"></ul>
+
+    <script>
+        async function scanServers() {
+            const startIP = document.getElementById("startIP").value || "198.20.20.1";
+            const endIP = document.getElementById("endIP").value || "198.20.20.50";
+            const serverList = document.getElementById("serverList");
+            serverList.innerHTML = "<p>Scanning...</p>";
+
+            function ipToInt(ip) {
+                return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0);
+            }
+
+            function intToIp(int) {
+                return [int >>> 24, (int >> 16) & 255, (int >> 8) & 255, int & 255].join('.');
+            }
+
+            let foundServers = [];
+            for (let i = ipToInt(startIP); i <= ipToInt(endIP); i++) {
+                const ip = intToIp(i);
+                const urls = [`http://${ip}`, `https://${ip}`]; // Check both HTTP & HTTPS
+                
+                for (const url of urls) {
+                    try {
+                        const response = await axios.get(url, { timeout: 1500 });
+                        if (response.status === 200) {
+                            foundServers.push(url);
+                            const li = document.createElement("li");
+                            li.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
+                            serverList.appendChild(li);
+                        }
+                    } catch (error) {
+                        console.log(`No response from ${url}`);
+                    }
+                }
+            }
+
+            if (foundServers.length === 0) {
+                serverList.innerHTML = "<p>No active servers found.</p>";
+            }
+        }
+    </script>
+
+</body>
+</html>
